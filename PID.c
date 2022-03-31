@@ -42,10 +42,12 @@ PID*PIDinit(int*inaddr,int*outaddr,int p ,int i,int d){
 
 void PIDupdate(PID*p,int tick){
     int Err = p->setpoint - *(p->inaddr);
-    p->last = Err;
     p->I=inter(&Err,tick);
-    p->output  = (p->p)*((set)(p->i)*(p->I))
+    p->output =(p->p)*(Err+(p->i)*(p->I)+(p->d)*(Err-(p->last))/tick);
+    p->last=Err;
+    *(p->outaddr) = p->output;
 }
+
 int main()
 {
     int i;
