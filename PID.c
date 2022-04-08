@@ -61,7 +61,7 @@ int main()
     PID*pid1 = PIDinit(&din,&dout,100,10,10);
     while (feof(Din))
     {
-        fscanf(Din,"%d%d",&din,&tick);
+        fscanf(Din,"%d,%d",&din,&tick);
         pid1->current=din;
         PIDupdate(pid1,tick);
         dout = pid1->output;
