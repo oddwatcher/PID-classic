@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-int inter(int *d, int tickms)
+int inter(int d, int tickms)
 {
     static int I = 0;
     int i = I;
-    I = I + *d * tickms;
-    if(*d<0){
+    I = I + d * tickms;
+    if(d<0){
         if(I>i){
             I = -(__INT32_MAX__);
         }
@@ -23,6 +23,7 @@ typedef struct PID
     int I;
     int last;
     int setpoint;
+    int current;
     int output;
     int *outaddr;
     int *inaddr;
@@ -41,21 +42,32 @@ PID*PIDinit(int*inaddr,int*outaddr,int p ,int i,int d){
 }
 
 void PIDupdate(PID*p,int tick){
-    int Err = p->setpoint - *(p->inaddr);
-    p->I=inter(&Err,tick);
-    p->output =(p->p)*(Err+(p->i)*(p->I)+(p->d)*(Err-(p->last))/tick);
-    p->last=Err;
-    *(p->outaddr) = p->output;
+    int Err = p->setpoint - p->current;
+    int D = (Err - p->last)/tick;
+    p->last = Err;
+    p->I=inter(Err,tick);
+    p->output = (p->p*(Err+(p->i)*(p->I)+(p->d)*D))/1000;
 }
 
 int main()
 {
-    int i;
-    while (1)
+    int din;
+    int dout;
+    int tick;
+    FILE * Din;
+    freopen("./1.txt","r",Din);
+    FILE * Dout;
+    freopen("./2.txt","w",Dout);
+    PID*pid1 = PIDinit(&din,&dout,100,10,10);
+    while (feof(Din))
     {
-        scanf("%d", &i);
-        i = inter(i, 20);
-        printf("%d\n", i);
+        fscanf(Din,"%d%d",&din,&tick);
+        pid1->current=din;
+        PIDupdate(pid1,tick);
+        dout = pid1->output;
+        fprintf(Dout,"%d",dout);
     }
-    return 0;
+    fclose(Din);
+    fclose(Dout);
+
 }
