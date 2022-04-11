@@ -60,12 +60,12 @@ void PID_IO(PID *p)
 
 void PIDupdate(PID *p, int tick)
 {
+    PID_IO(p);
     int Err = p->setpoint - p->current;
     int D = ((Err - p->last) / tick);
     p->last = Err;
     inter(Err, &(p->I), tick);
-    p->output = ((p->p) * (Err + (p->i) * (p->I/1000) + (p->d) * D)) / 1000;
-    PID_IO(p);
+    p->output = (((p->p)/1000) * (Err + (p->i) * (p->I/1000) + (p->d) * D)) / 1000;
 }
 
 struct motor
@@ -84,18 +84,20 @@ void motoract(int f, struct motor *mot, int tick)
     {
         a = a > 0 ? mot->maxa : -(mot->maxa);
     }
-    mot->pos = mot->pos + (mot->v * tick + (int)(0.5 * a * tick * tick)/1000);
-    mot->v = mot->v + (a * tick);
+    mot->pos = mot->pos + (mot->v * tick + (int)(a * tick * tick)/2000);
+    mot->v = mot->v + (a * tick/1000);
     if ((mot->v > 0 ? mot->v : -(mot->v)) > (mot->maxv))
     {
         mot->v = mot->v > 0 ? mot->maxv : -(mot->maxv);
     }
+    printf("force:%d,acc:%d,speed:%d\n",f,a,mot->v);
 }
 
 int main()
 {
     int din;
     int dout;
+    int P,I,D;
     int tick;
     int motor = 0;
     mot1.mass = 10;
@@ -103,11 +105,12 @@ int main()
     mot1.maxv = 30;
     mot1.pos = 0;
     mot1.v = 0;
+    scanf("%d,%d,%d",&P,&I,&D);
     FILE *Din;
     Din = fopen("Din.txt", "r");
     FILE *Dout;
     Dout = fopen("Dout.txt", "w");
-    PID *pid1 = PIDinit(&(mot1.pos), &motor, &din, 500, 500, 1000);
+    PID *pid1 = PIDinit(&(mot1.pos), &motor, &din, P, I, D);
     while (!feof(Din))
     {
         fscanf(Din, "%d,%d", &din, &tick);
