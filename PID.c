@@ -1,22 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
-int inter(int d, int tickms)
+void inter(int d,int*I, int tickms)
 {
-    static int I = 0;
-    int i = I;
-    I = I + d * tickms;
+    int i = *I;
+    *I = (*I + d * tickms/1000);
     if (d < 0)
     {
-        if (I > i)
+        if (*I > i)
         {
-            I = -(__INT32_MAX__);
+            *I = -(__INT32_MAX__);
         }
     }
-    else if (I < i)
+    else if (*I < i)
     {
-        I = __INT32_MAX__;
+        *I = __INT32_MAX__;
     }
-    return I;
 }
 
 typedef struct PID
@@ -57,12 +55,11 @@ void PID_IO(PID *p)
 
 void PIDupdate(PID *p, int tick)
 {
-
     int Err = p->setpoint - p->current;
     int D = (Err - p->last) / tick;
     p->last = Err;
-    p->I = inter(Err, tick);
-    p->output = (p->p * (Err + (p->i) * (p->I) + (p->d) * D)) / 1000;
+    inter(Err, &(p->I),tick);
+    p->output = ((p->p) * (Err + (p->i) * (p->I)+ (p->d) * D))/10 ;
     PID_IO(p);
 }
 
@@ -82,7 +79,7 @@ void motoract(int f, struct motor *mot, int tick)
     {
         a = a > 0 ? mot->maxa : -(mot->maxa);
     }
-    mot->pos = mot->pos + mot->v * tick + (int)(0.5 * a * tick * tick);
+    mot->pos = mot->pos + (mot->v * tick + (int)(0.5 * a * tick * tick))/1000;
     mot->v = mot->v + a * tick;
     if ((mot->v > 0 ? mot->v : -(mot->v)) > (mot->maxv))
     {
@@ -95,23 +92,24 @@ int main()
     int din;
     int dout;
     int tick;
-    int motor;
-    mot1.mass=1000;
-    mot1.maxa=1000;
-    mot1.maxv=3000;
+    int motor =0;
+    mot1.mass=10;
+    mot1.maxa=100;
+    mot1.maxv=30;
     mot1.pos=0;
     mot1.v=0;
     FILE *Din;
-    freopen("Din.txt", "r", Din);
+    Din=fopen("Din.txt","r");
     FILE *Dout;
-    freopen("Dout.txt", "w", Dout);
-    PID *pid1 = PIDinit(&(mot1.pos),&motor,&din, 100, 10, 10);
-    while (feof(Din))
+    Dout=fopen("Dout.txt", "w");
+    PID *pid1 = PIDinit(&(mot1.pos),&motor,&din,80, 1000, 0);
+    while (!feof(Din))
     {
         fscanf(Din, "%d,%d", &din, &tick);
         PIDupdate(pid1, tick);
         motoract(motor,&mot1,tick);
-        fprintf(Dout, "%d,%d\n", mot1.pos,mot1.v);
+        fprintf(Dout, "%d,%d,%d\n", mot1.pos,mot1.v,motor);
+        printf("%d,%d,%d,%d\n",din, mot1.pos,mot1.v,motor);
     }
     fclose(Din);
     fclose(Dout);
