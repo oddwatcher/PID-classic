@@ -1,9 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
+//PID service use PIDinit to establish a new memory space for it ,and this function returns an address of the pid data, init requires the address of setpoint,input and output
+//PID update use address stored in pidstruct so no need to specify the inouts. 
+//PID IO processes the inout progress and may add custom prog to it such as structured input
+//the data feed in at the specifyed address should be int and mutiplyed 1000(if on 8 bit shoud reduce to 10 or 0 ) the program run in strict int for imbedding
+//
 void inter(int d, int *I, int tickms)
 {
     int i = *I;
-    *I = (*I + d * tickms / 1000);
+    *I = (*I + d * tickms);
     if (d < 0)
     {
         if (*I > i)
@@ -56,10 +61,10 @@ void PID_IO(PID *p)
 void PIDupdate(PID *p, int tick)
 {
     int Err = p->setpoint - p->current;
-    int D = ((Err - p->last) / tick)*1000;
+    int D = ((Err - p->last) / tick);
     p->last = Err;
     inter(Err, &(p->I), tick);
-    p->output = ((p->p) * (Err + (p->i) * (p->I) + (p->d) * D)) / 1000;
+    p->output = ((p->p) * (Err + (p->i) * (p->I/1000) + (p->d) * D)) / 1000;
     PID_IO(p);
 }
 
@@ -80,7 +85,7 @@ void motoract(int f, struct motor *mot, int tick)
         a = a > 0 ? mot->maxa : -(mot->maxa);
     }
     mot->pos = mot->pos + (mot->v * tick + (int)(0.5 * a * tick * tick)/1000);
-    mot->v = mot->v + (a * tick)/1000;
+    mot->v = mot->v + (a * tick);
     if ((mot->v > 0 ? mot->v : -(mot->v)) > (mot->maxv))
     {
         mot->v = mot->v > 0 ? mot->maxv : -(mot->maxv);
