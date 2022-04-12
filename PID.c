@@ -5,7 +5,7 @@
 //PID IO processes the inout progress and may add custom prog to it such as structured input
 //the data feed in at the specifyed address should be int and mutiplyed 1000(if on 8 bit shoud reduce to 10 or 0 ) the program run in strict int for imbedding
 //
-void inter(int d, int *I, int tickms)
+void inter(int d, int *I, int tickms) //anti overflow interation
 {
     int i = *I;
     *I = (*I + d * tickms);
