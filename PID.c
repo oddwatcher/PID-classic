@@ -65,11 +65,11 @@ void PIDupdate(PID *p, int tick)
 {
     PID_IO(p);
     int Err = p->setpoint - p->current;
-    int D = ((Err - p->last) / tick);
+    int D = ((Err - p->last)*100 / tick);
     p->last = Err;
     inter(Err, &(p->I), tick);
-    p->output = ((p->p) * (Err + (p->i) * (p->I/100000) + (p->d) * D)) / 1000;
-    printf("Err=%d,I=%d,D=%d\n",Err,(p->i) * (p->I/10000),(p->d) * D);
+    p->output = ((p->p) * (Err + (p->i) * (p->I)/10000 + ((p->d) * D)/100)) / 1000;
+    printf("Err=%d,I=%d,D=%d\n",Err,(p->i) * (p->I)/10000,(p->d) * D/100);
 }
 
 struct motor
@@ -97,6 +97,7 @@ void motoract(int f, struct motor *mot, int tick)
     printf("force:%d,acc:%d,speed:%d\n",f,a,mot->v);
 }
 
+
 int main()
 {
     int din;
@@ -109,10 +110,8 @@ int main()
     mot1.maxv = 30;
     mot1.pos = 0;
     mot1.v = 0;
-    
     scanf("%d,%d,%d",&P,&I,&D);
-    P = P*1000;
-    D = D*10;
+    P = P*10000;
     FILE *Din;
     Din = fopen("Din.txt", "r");
     FILE *Dout;

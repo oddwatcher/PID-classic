@@ -1,22 +1,71 @@
 /* This is a C99 style PID program using  */
 
 /*for differrnt system change data type*/
-#define PID_d_type int
+#ifndef PID
 typedef struct PID
 {
-    PID_d_type p;
-    PID_d_type i;
-    PID_d_type d;
-    PID_d_type I;
-    PID_d_type exit;
-    PID_d_type setpoint;
-    PID_d_type output;
-}PID;
+    int p;
+    int i;
+    int d;
+    int I;
+    int last;
+    int setpoint;
+    int current;
+    int output;
+    int *outaddr;
+    int *inaddr;
+    int *setaddr;
+} PID;
+#endif
+#include<stdlib.h>
 
-void updatePID(PID* p,PID_d_type Din,,PID_d_type Exit){
-    PID_d_type D = Din - p->setpoint;
-    Din = p->setpoint - Din;
-    p->I = p->I+Din-p->exit;
-    p->exit = Exit;
-    p->output = p->p*(Din + p->i*p->I+p->d*(Din-p->setpoint));
+void inter(int d, int *I, int tickms) //anti overflow interation
+{
+    int i = *I;
+    *I = (*I + d * tickms);
+    if (d < 0)
+    {
+        if (*I > i)
+        {
+            *I = -(__INT32_MAX__);
+        }
+    }
+    else if (*I < i)
+    {
+        *I = __INT32_MAX__;
+    }
+    if(*I>__INT32_MAX__){
+        
+    }
+}
+
+PID *PIDinit(int *inaddr, int *outaddr, int *setaddr, int p, int i, int d)
+{
+    PID *temp = (PID *)malloc(sizeof(PID));
+    temp->p = p;
+    temp->i = i;
+    temp->d = d;
+    temp->inaddr = inaddr;
+    temp->outaddr = outaddr;
+    temp->setaddr = setaddr;
+    temp->I = 0;
+    temp->last = 0;
+    return temp;
+}
+
+void PID_IO(PID *p)
+{
+    p->current = *(p->inaddr);
+    *(p->outaddr) = p->output;
+    p->setpoint = *(p->setaddr);
+}
+
+void PIDupdate(PID *p, int tick)
+{
+    PID_IO(p);
+    int Err = p->setpoint - p->current;
+    int D = ((Err - p->last) / tick);
+    p->last = Err;
+    inter(Err, &(p->I), tick);
+    p->output = ((p->p) * (Err*1000 + (p->i) * (p->I/10000) + (p->d) * D)) / 1000;
 }
