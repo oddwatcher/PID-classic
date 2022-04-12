@@ -20,6 +20,9 @@ void inter(int d, int *I, int tickms) //anti overflow interation
     {
         *I = __INT32_MAX__;
     }
+    if(*I>__INT32_MAX__){
+        
+    }
 }
 
 typedef struct PID
@@ -65,7 +68,8 @@ void PIDupdate(PID *p, int tick)
     int D = ((Err - p->last) / tick);
     p->last = Err;
     inter(Err, &(p->I), tick);
-    p->output = (((p->p)/1000) * (Err + (p->i) * (p->I/1000) + (p->d) * D)) / 1000;
+    p->output = ((p->p) * (Err + (p->i) * (p->I/100000) + (p->d) * D)) / 1000;
+    printf("Err=%d,I=%d,D=%d\n",Err,(p->i) * (p->I/10000),(p->d) * D);
 }
 
 struct motor
@@ -105,7 +109,10 @@ int main()
     mot1.maxv = 30;
     mot1.pos = 0;
     mot1.v = 0;
+    
     scanf("%d,%d,%d",&P,&I,&D);
+    P = P*1000;
+    D = D*10;
     FILE *Din;
     Din = fopen("Din.txt", "r");
     FILE *Dout;
@@ -117,8 +124,9 @@ int main()
         PIDupdate(pid1, tick);
         motoract(motor, &mot1, tick);
         fprintf(Dout, "%d,%d,%d\n", mot1.pos, mot1.v, motor);
-        printf("%d,%d,%d,%d\n", din, mot1.pos, mot1.v, motor);
     }
     fclose(Din);
     fclose(Dout);
+    printf("%d,%d,%d",pid1->p,pid1->i,pid1->d);
+    return 0;
 }
