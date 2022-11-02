@@ -16,8 +16,9 @@ typedef struct PID
     int *inaddr;
     int *setaddr;
 } PID;
-#endif
 #include<stdlib.h>
+#endif
+
 
 void inter(int d, int *I, int tickms) //anti overflow interation
 {
@@ -52,20 +53,21 @@ PID *PIDinit(int *inaddr, int *outaddr, int *setaddr, int p, int i, int d)
     temp->last = 0;
     return temp;
 }
+#ifndef PID_IO
 
 void PID_IO(PID *p)
-{
+{//When used in controllers this can change to required
     p->current = *(p->inaddr);
     *(p->outaddr) = p->output;
     p->setpoint = *(p->setaddr);
 }
-
+#endif
 void PIDupdate(PID *p, int tick)
 {
     PID_IO(p);
     int Err = p->setpoint - p->current;
-    int D = ((Err - p->last) / tick);
+    int D = ((Err - p->last)*100 / tick);
     p->last = Err;
     inter(Err, &(p->I), tick);
-    p->output = ((p->p) * (Err*1000 + (p->i) * (p->I/10000) + (p->d) * D)) / 1000;
+    p->output = ((p->p) * (Err + (p->i) * (p->I)/10000 + ((p->d) * D)/100)) / 1000;
 }
